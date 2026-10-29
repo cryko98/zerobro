@@ -110,6 +110,14 @@
     }
     .stage.gl img { display: none; }
 
+    .fx {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .stage canvas { filter: drop-shadow(0 0 26px rgba(123, 92, 255, .35)); }
+
     .ring {
       position: fixed;
       left: 0; top: 0;
@@ -248,7 +256,7 @@
       <span class="label">CA:</span>
       <span class="value">Coming soon</span>
     </div>
-    <p class="hint">touch the bro</p>
+    <p class="hint">touch the bro · click to shatter</p>
   </main>
 
   <section class="lore" id="lore">
@@ -273,6 +281,7 @@
   </section>
 
   <div class="ring" id="ring"></div>
+  <canvas class="fx" id="fx" aria-hidden="true"></canvas>
 
   <script>
   (() => {
@@ -293,194 +302,7 @@
     lines.forEach(l => io.observe(l));
   })();
 
-  (() => {
-    const RADIUS = 0.17; // fraction of the character's width
-    const stage = document.getElementById("stage");
-    const canvas = document.getElementById("gl");
-    const ring = document.getElementById("ring");
-    const gl = canvas.getContext("webgl", { premultipliedAlpha: true, antialias: false });
-    if (!gl) return;
-
-    const vs = `
-      attribute vec2 a_pos;
-      varying vec2 v_uv;
-      void main() {
-        v_uv = vec2((a_pos.x + 1.0) * 0.5, 1.0 - (a_pos.y + 1.0) * 0.5);
-        gl_Position = vec4(a_pos, 0.0, 1.0);
-      }`;
-
-    const fs = `
-      precision highp float;
-      uniform sampler2D u_tex;
-      uniform vec2 u_mouse;
-      uniform float u_time;
-      uniform float u_radius;
-      uniform float u_strength;
-      varying vec2 v_uv;
-
-      vec3 hueRotate(vec3 c, float a) {
-        const vec3 k = vec3(0.57735);
-        float ca = cos(a);
-        return c * ca + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - ca);
-      }
-      // the background is near-black; anything brighter is the body
-      float bodyMask(vec3 c) {
-        float m = max(c.r, max(c.g, c.b));
-        return smoothstep(0.085, 0.17, m);
-      }
-
-      void main() {
-        vec2 uv = v_uv;
-        // idle breathing
-        uv.y += sin(u_time * 1.2) * 0.003;
-
-        vec2 d = uv - u_mouse;
-        float dist = length(d);
-        float inC = (1.0 - smoothstep(u_radius * 0.55, u_radius, dist)) * u_strength;
-
-        vec2 suv = uv;
-        if (inC > 0.01) {
-          // liquid ripple pushing outward from the cursor
-          float w = sin(dist * 95.0 - u_time * 7.0);
-          suv += normalize(d + 1e-5) * w * 0.006 * inC;
-          // bulge
-          suv = u_mouse + (suv - u_mouse) * (1.0 - 0.18 * inC * (1.0 - dist / u_radius));
-          // voxelize the material
-          float cells = mix(320.0, 90.0, inC);
-          suv = (floor(suv * cells) + 0.5) / cells;
-        }
-
-        vec3 base = texture2D(u_tex, uv).rgb;
-        float mb = bodyMask(base);
-
-        // chromatic split inside the circle
-        vec2 off = normalize(d + 1e-5) * 0.006 * inC;
-        vec3 col = vec3(
-          texture2D(u_tex, suv + off).r,
-          texture2D(u_tex, suv).g,
-          texture2D(u_tex, suv - off).b
-        );
-        float ms = bodyMask(texture2D(u_tex, suv).rgb);
-
-        // swing the hue back and forth so it stays in the violet/blue/salmon family
-        vec3 fx = hueRotate(col, sin(u_time * 2.2 + dist * 40.0) * 0.9);
-        float l = dot(fx, vec3(0.299, 0.587, 0.114));
-        fx = mix(vec3(l), fx, 1.7);
-        fx *= 1.2 + 0.45 * sin(dist * 140.0 - u_time * 10.0);
-        // electric scanlines
-        fx += vec3(0.25, 0.35, 0.6) * step(0.92, fract(suv.y * 160.0 + u_time * 2.0)) * inC;
-
-        float effect = inC * ms;
-        vec3 outc = mix(base, fx, effect);
-        float alpha = max(mb, effect);
-
-        // glowing rim where the circle crosses the body
-        float rim = smoothstep(0.008, 0.0, abs(dist - u_radius * 0.92)) * u_strength;
-        outc += vec3(0.65, 0.55, 1.0) * rim * alpha;
-
-        gl_FragColor = vec4(outc * alpha, alpha);
-      }`;
-
-    function compile(type, src) {
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
-      return s;
-    }
-
-    let prog;
-    try {
-      prog = gl.createProgram();
-      gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
-      gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
-      gl.linkProgram(prog);
-      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
-    } catch (e) {
-      console.warn(e);
-      return;
-    }
-    gl.useProgram(prog);
-
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    const aPos = gl.getAttribLocation(prog, "a_pos");
-    gl.enableVertexAttribArray(aPos);
-    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-    const u = {
-      mouse: gl.getUniformLocation(prog, "u_mouse"),
-      time: gl.getUniformLocation(prog, "u_time"),
-      radius: gl.getUniformLocation(prog, "u_radius"),
-      strength: gl.getUniformLocation(prog, "u_strength"),
-    };
-
-    const img = new Image();
-    img.src = "/zerobro.png";
-    img.onload = () => {
-      const tex = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      stage.classList.add("gl");
-      requestAnimationFrame(frame);
-    };
-
-    function resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const r = canvas.getBoundingClientRect();
-      const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w; canvas.height = h;
-        gl.viewport(0, 0, w, h);
-      }
-    }
-
-    const target = { x: 0.5, y: 0.5, s: 0 };
-    const cur = { x: 0.5, y: 0.5, s: 0 };
-    let clientX = 0, clientY = 0, inside = false;
-
-    function onMove(x, y) {
-      clientX = x; clientY = y;
-      const r = stage.getBoundingClientRect();
-      target.x = (x - r.left) / r.width;
-      target.y = (y - r.top) / r.height;
-      inside = target.x >= 0 && target.x <= 1 && target.y >= 0 && target.y <= 1;
-      target.s = inside ? 1 : 0;
-    }
-    window.addEventListener("pointermove", e => onMove(e.clientX, e.clientY), { passive: true });
-    window.addEventListener("pointerdown", e => onMove(e.clientX, e.clientY), { passive: true });
-    stage.addEventListener("pointerleave", () => { target.s = 0; inside = false; });
-    window.addEventListener("pointerup", e => { if (e.pointerType !== "mouse") { target.s = 0; inside = false; } });
-
-    const start = performance.now();
-    function frame(now) {
-      resize();
-      const k = 0.18;
-      cur.x += (target.x - cur.x) * k;
-      cur.y += (target.y - cur.y) * k;
-      cur.s += (target.s - cur.s) * 0.08;
-
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.uniform2f(u.mouse, cur.x, cur.y);
-      gl.uniform1f(u.time, (now - start) / 1000);
-      gl.uniform1f(u.radius, RADIUS);
-      gl.uniform1f(u.strength, cur.s);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-      const size = RADIUS * 2 * stage.getBoundingClientRect().width;
-      ring.style.width = ring.style.height = size + "px";
-      ring.style.transform = `translate(${clientX - size / 2}px, ${clientY - size / 2}px)`;
-      ring.classList.toggle("on", inside);
-
-      requestAnimationFrame(frame);
-    }
-  })();
   </script>
+  <script src="/app.js"></script>
 </body>
 </html>
