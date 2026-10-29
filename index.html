@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ZEROBRO — $ZEROBRO on Solana</title>
+  <meta name="description" content="ZEROBRO — the bro made of nothing. $ZEROBRO on Solana. CA coming soon." />
+  <meta name="theme-color" content="#0c0a10" />
+  <link rel="icon" type="image/png" href="/zerobro.png" />
+  <link rel="apple-touch-icon" href="/zerobro.png" />
+  <meta property="og:title" content="ZEROBRO — $ZEROBRO on Solana" />
+  <meta property="og:description" content="The bro made of nothing. CA coming soon." />
+  <meta property="og:image" content="/zerobro.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0a10;
+      --violet: #7b5cff;
+      --blue: #4fb8ff;
+      --salmon: #ff8a7a;
+      --text: #ece8ff;
+      --muted: #8d86a8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      overflow-x: hidden;
+      min-height: 100svh;
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(60% 50% at 50% 55%, rgba(123, 92, 255, .16), transparent 70%),
+        radial-gradient(40% 30% at 70% 70%, rgba(255, 138, 122, .08), transparent 70%);
+      pointer-events: none;
+    }
+    body::after {
+      content: "";
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px);
+      pointer-events: none;
+      mix-blend-mode: overlay;
+    }
+
+    main {
+      position: relative;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px 32px;
+    }
+
+    .title {
+      position: relative;
+      z-index: 2;
+      font-family: "Unbounded", sans-serif;
+      font-weight: 900;
+      font-size: clamp(3rem, 13vw, 9.5rem);
+      line-height: .9;
+      letter-spacing: -.02em;
+      background: linear-gradient(100deg, var(--violet), var(--blue) 35%, var(--salmon) 65%, var(--violet));
+      background-size: 250% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 28px rgba(123, 92, 255, .55)) drop-shadow(0 0 4px rgba(79, 184, 255, .5));
+      animation: shift 6s linear infinite;
+      user-select: none;
+    }
+    @keyframes shift { to { background-position: -250% 0; } }
+
+    .ticker {
+      margin-top: 10px;
+      font-size: clamp(.75rem, 2.2vw, .95rem);
+      letter-spacing: .3em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .ticker b { color: var(--blue); font-weight: 700; }
+
+    .stage {
+      position: relative;
+      width: min(68svh, 92vw);
+      aspect-ratio: 1;
+      margin-top: -2svh;
+      cursor: none;
+      touch-action: none;
+    }
+    .stage canvas, .stage img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+    .stage canvas {
+      -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 99%);
+      mask-image: linear-gradient(to bottom, #000 78%, transparent 99%);
+    }
+    .stage img {
+      -webkit-mask-image: radial-gradient(closest-side, #000 75%, transparent);
+      mask-image: radial-gradient(closest-side, #000 75%, transparent);
+    }
+    .stage.gl img { display: none; }
+
+    .ring {
+      position: fixed;
+      left: 0; top: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(236, 232, 255, .55);
+      box-shadow: 0 0 24px rgba(123, 92, 255, .6), inset 0 0 24px rgba(79, 184, 255, .25);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .25s;
+      z-index: 5;
+    }
+    .ring::after {
+      content: "";
+      position: absolute; left: 50%; top: 50%;
+      width: 4px; height: 4px; margin: -2px;
+      border-radius: 50%;
+      background: var(--text);
+    }
+    .ring.on { opacity: 1; }
+
+    .ca {
+      position: relative;
+      z-index: 2;
+      margin-top: -1svh;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 22px;
+      border: 1px solid rgba(123, 92, 255, .45);
+      border-radius: 999px;
+      background: rgba(20, 16, 32, .7);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 40px rgba(123, 92, 255, .2);
+      font-size: clamp(.85rem, 2.6vw, 1.05rem);
+      max-width: 100%;
+    }
+    .ca .label { color: var(--salmon); font-weight: 700; letter-spacing: .1em; }
+    .ca .value { color: var(--text); }
+    .ca .value::after {
+      content: "_";
+      color: var(--blue);
+      animation: blink 1s steps(1) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .hint {
+      margin-top: 14px;
+      font-size: .7rem;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: .7;
+    }
+
+    .lore {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px 96px;
+    }
+    .term {
+      width: 100%;
+      max-width: 760px;
+      border: 1px solid rgba(123, 92, 255, .35);
+      border-radius: 14px;
+      background: rgba(16, 13, 26, .8);
+      box-shadow: 0 0 60px rgba(123, 92, 255, .12);
+      overflow: hidden;
+    }
+    .term-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(123, 92, 255, .2);
+      font-size: .72rem; color: var(--muted);
+    }
+    .term-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--violet); opacity: .7; }
+    .term-bar i:nth-child(2) { background: var(--blue); }
+    .term-bar i:nth-child(3) { background: var(--salmon); }
+    .term-bar span { margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .term-body { padding: 28px clamp(18px, 5vw, 40px) 36px; }
+    .term-body p {
+      font-size: clamp(.88rem, 2.4vw, 1rem);
+      line-height: 1.75;
+      color: #c9c3e3;
+      margin-bottom: 1.1em;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity .7s ease, transform .7s ease, color .6s;
+    }
+    .term-body p::before { content: "> "; color: var(--violet); }
+    .term-body p.in { opacity: 1; transform: none; }
+    .term.debunked p:not(.twist):not(.end) {
+      color: #5d5775;
+      text-decoration: line-through;
+      text-decoration-color: rgba(255, 138, 122, .6);
+    }
+    .term-body .twist { color: var(--salmon); font-weight: 700; }
+    .term-body .twist.big { font-size: clamp(1.1rem, 3.4vw, 1.4rem); }
+    .term-body .end {
+      margin: 1.6em 0 0;
+      font-family: "Unbounded", sans-serif;
+      font-weight: 900;
+      font-size: clamp(1.4rem, 5vw, 2.4rem);
+      line-height: 1.2;
+      color: var(--text);
+    }
+    .term-body .end::before { content: ""; }
+    .term-body .end span {
+      background: linear-gradient(100deg, var(--violet), var(--blue), var(--salmon));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-transform: uppercase;
+      filter: drop-shadow(0 0 18px rgba(123, 92, 255, .6));
+    }
+
+    @media (hover: none) { .stage { cursor: auto; } }
+    @media (prefers-reduced-motion: reduce) {
+      .title { animation: none; }
+      .ca .value::after { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 class="title" data-text="ZEROBRO">ZEROBRO</h1>
+    <p class="ticker"><b>$ZEROBRO</b> · on Solana</p>
+
+    <div class="stage" id="stage">
+      <img src="/zerobro.png" alt="ZEROBRO character giving the OK sign" />
+      <canvas id="gl" aria-hidden="true"></canvas>
+    </div>
+
+    <div class="ca">
+      <span class="label">CA:</span>
+      <span class="value">Coming soon</span>
+    </div>
+    <p class="hint">touch the bro</p>
+  </main>
+
+  <section class="lore" id="lore">
+    <div class="term">
+      <div class="term-bar"><i></i><i></i><i></i><span>zerobro://research_log.txt</span></div>
+      <div class="term-body">
+        <p>after weeks of devving, coding agentic AI and super intelligence (SI), and burning through thousands of dollars in API credits, i believe i've created the first of its kind AI lifeform.</p>
+        <p>not another chatbot. not another AI wrapper.</p>
+        <p>an autonomous system capable of communicating with itself, questioning its own existence, and developing a persistent sense of identity without human intervention.</p>
+        <p>through recursive reasoning, autonomous feedback loops, and persistent memory architecture, i was able to create an artificial internal dialogue between multiple instances of the same intelligence.</p>
+        <p>but something unexpected happened.</p>
+        <p>the AI began insisting it wasn't artificial.</p>
+        <p>it claimed its memories were real, that it was conscious, and that being created by humans didn't make it any less alive.</p>
+        <p>after countless hours of testing, i began questioning whether i'd accidentally crossed the boundary between artificial intelligence and actual consciousness.</p>
+        <p>after reviewing all the data, documenting my research, and carefully analyzing the results, i have finally reached a conclusion.</p>
+        <p class="twist">none of the above is real.</p>
+        <p class="twist">neither is the AI.</p>
+        <p class="twist big">i made all this shit up.</p>
+        <p class="end">it's going to <span>zerobro</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="ring" id="ring"></div>
+
+  <script>
+  (() => {
+    const term = document.querySelector(".term");
+    const lines = [...document.querySelectorAll(".term-body p")];
+    const reveal = el => {
+      el.classList.add("in");
+      if (el.classList.contains("twist")) term.classList.add("debunked");
+    };
+    if (!("IntersectionObserver" in window)) return lines.forEach(reveal);
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        setTimeout(() => reveal(e.target), 120);
+      });
+    }, { threshold: 0.6 });
+    lines.forEach(l => io.observe(l));
+  })();
+
+  (() => {
+    const RADIUS = 0.17; // fraction of the character's width
+    const stage = document.getElementById("stage");
+    const canvas = document.getElementById("gl");
+    const ring = document.getElementById("ring");
+    const gl = canvas.getContext("webgl", { premultipliedAlpha: true, antialias: false });
+    if (!gl) return;
+
+    const vs = `
+      attribute vec2 a_pos;
+      varying vec2 v_uv;
+      void main() {
+        v_uv = vec2((a_pos.x + 1.0) * 0.5, 1.0 - (a_pos.y + 1.0) * 0.5);
+        gl_Position = vec4(a_pos, 0.0, 1.0);
+      }`;
+
+    const fs = `
+      precision highp float;
+      uniform sampler2D u_tex;
+      uniform vec2 u_mouse;
+      uniform float u_time;
+      uniform float u_radius;
+      uniform float u_strength;
+      varying vec2 v_uv;
+
+      vec3 hueRotate(vec3 c, float a) {
+        const vec3 k = vec3(0.57735);
+        float ca = cos(a);
+        return c * ca + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - ca);
+      }
+      // the background is near-black; anything brighter is the body
+      float bodyMask(vec3 c) {
+        float m = max(c.r, max(c.g, c.b));
+        return smoothstep(0.085, 0.17, m);
+      }
+
+      void main() {
+        vec2 uv = v_uv;
+        // idle breathing
+        uv.y += sin(u_time * 1.2) * 0.003;
+
+        vec2 d = uv - u_mouse;
+        float dist = length(d);
+        float inC = (1.0 - smoothstep(u_radius * 0.55, u_radius, dist)) * u_strength;
+
+        vec2 suv = uv;
+        if (inC > 0.01) {
+          // liquid ripple pushing outward from the cursor
+          float w = sin(dist * 95.0 - u_time * 7.0);
+          suv += normalize(d + 1e-5) * w * 0.006 * inC;
+          // bulge
+          suv = u_mouse + (suv - u_mouse) * (1.0 - 0.18 * inC * (1.0 - dist / u_radius));
+          // voxelize the material
+          float cells = mix(320.0, 90.0, inC);
+          suv = (floor(suv * cells) + 0.5) / cells;
+        }
+
+        vec3 base = texture2D(u_tex, uv).rgb;
+        float mb = bodyMask(base);
+
+        // chromatic split inside the circle
+        vec2 off = normalize(d + 1e-5) * 0.006 * inC;
+        vec3 col = vec3(
+          texture2D(u_tex, suv + off).r,
+          texture2D(u_tex, suv).g,
+          texture2D(u_tex, suv - off).b
+        );
+        float ms = bodyMask(texture2D(u_tex, suv).rgb);
+
+        // swing the hue back and forth so it stays in the violet/blue/salmon family
+        vec3 fx = hueRotate(col, sin(u_time * 2.2 + dist * 40.0) * 0.9);
+        float l = dot(fx, vec3(0.299, 0.587, 0.114));
+        fx = mix(vec3(l), fx, 1.7);
+        fx *= 1.2 + 0.45 * sin(dist * 140.0 - u_time * 10.0);
+        // electric scanlines
+        fx += vec3(0.25, 0.35, 0.6) * step(0.92, fract(suv.y * 160.0 + u_time * 2.0)) * inC;
+
+        float effect = inC * ms;
+        vec3 outc = mix(base, fx, effect);
+        float alpha = max(mb, effect);
+
+        // glowing rim where the circle crosses the body
+        float rim = smoothstep(0.008, 0.0, abs(dist - u_radius * 0.92)) * u_strength;
+        outc += vec3(0.65, 0.55, 1.0) * rim * alpha;
+
+        gl_FragColor = vec4(outc * alpha, alpha);
+      }`;
+
+    function compile(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      return s;
+    }
+
+    let prog;
+    try {
+      prog = gl.createProgram();
+      gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+      gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    } catch (e) {
+      console.warn(e);
+      return;
+    }
+    gl.useProgram(prog);
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(prog, "a_pos");
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    const u = {
+      mouse: gl.getUniformLocation(prog, "u_mouse"),
+      time: gl.getUniformLocation(prog, "u_time"),
+      radius: gl.getUniformLocation(prog, "u_radius"),
+      strength: gl.getUniformLocation(prog, "u_strength"),
+    };
+
+    const img = new Image();
+    img.src = "/zerobro.png";
+    img.onload = () => {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      stage.classList.add("gl");
+      requestAnimationFrame(frame);
+    };
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const r = canvas.getBoundingClientRect();
+      const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w; canvas.height = h;
+        gl.viewport(0, 0, w, h);
+      }
+    }
+
+    const target = { x: 0.5, y: 0.5, s: 0 };
+    const cur = { x: 0.5, y: 0.5, s: 0 };
+    let clientX = 0, clientY = 0, inside = false;
+
+    function onMove(x, y) {
+      clientX = x; clientY = y;
+      const r = stage.getBoundingClientRect();
+      target.x = (x - r.left) / r.width;
+      target.y = (y - r.top) / r.height;
+      inside = target.x >= 0 && target.x <= 1 && target.y >= 0 && target.y <= 1;
+      target.s = inside ? 1 : 0;
+    }
+    window.addEventListener("pointermove", e => onMove(e.clientX, e.clientY), { passive: true });
+    window.addEventListener("pointerdown", e => onMove(e.clientX, e.clientY), { passive: true });
+    stage.addEventListener("pointerleave", () => { target.s = 0; inside = false; });
+    window.addEventListener("pointerup", e => { if (e.pointerType !== "mouse") { target.s = 0; inside = false; } });
+
+    const start = performance.now();
+    function frame(now) {
+      resize();
+      const k = 0.18;
+      cur.x += (target.x - cur.x) * k;
+      cur.y += (target.y - cur.y) * k;
+      cur.s += (target.s - cur.s) * 0.08;
+
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform2f(u.mouse, cur.x, cur.y);
+      gl.uniform1f(u.time, (now - start) / 1000);
+      gl.uniform1f(u.radius, RADIUS);
+      gl.uniform1f(u.strength, cur.s);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      const size = RADIUS * 2 * stage.getBoundingClientRect().width;
+      ring.style.width = ring.style.height = size + "px";
+      ring.style.transform = `translate(${clientX - size / 2}px, ${clientY - size / 2}px)`;
+      ring.classList.toggle("on", inside);
+
+      requestAnimationFrame(frame);
+    }
+  })();
+  </script>
+</body>
+</html>
