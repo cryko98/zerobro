@@ -93,7 +93,7 @@
       aspect-ratio: 1;
       margin-top: -2svh;
       cursor: none;
-      touch-action: none;
+      touch-action: pan-y;
     }
     .stage canvas, .stage img {
       position: absolute; inset: 0;
@@ -210,7 +210,7 @@
     }
     .term-body p::before { content: "> "; color: var(--violet); }
     .term-body p.in { opacity: 1; transform: none; }
-    .term.debunked p:not(.twist):not(.end) {
+    .term.debunked p:not(.twist):not(.end):not(.over) {
       color: #5d5775;
       text-decoration: line-through;
       text-decoration-color: rgba(255, 138, 122, .6);
@@ -226,6 +226,17 @@
       color: var(--text);
     }
     .term-body .end::before { content: ""; }
+    .term-body .over {
+      margin: 1.2em 0 0;
+      font-family: "Unbounded", sans-serif;
+      font-weight: 700;
+      font-size: clamp(1rem, 3.4vw, 1.4rem);
+      letter-spacing: .04em;
+      color: var(--salmon);
+      text-shadow: 0 0 18px rgba(255, 138, 122, .5);
+      transition-delay: .6s;
+    }
+    .term-body .over::before { content: ""; }
     .term-body .end span {
       background: linear-gradient(100deg, var(--violet), var(--blue), var(--salmon));
       -webkit-background-clip: text;
@@ -235,7 +246,18 @@
       filter: drop-shadow(0 0 18px rgba(123, 92, 255, .6));
     }
 
-    @media (hover: none) { .stage { cursor: auto; } }
+    .hint .tap { display: none; }
+    @media (hover: none) {
+      .stage { cursor: auto; }
+      .ring { display: none; }
+      .hint .tap { display: inline; }
+      .hint .click { display: none; }
+    }
+    @media (max-width: 600px) {
+      main { overflow-x: clip; }
+      .stage { width: min(68svh, 125vw); margin-top: -4svh; }
+      .ca { margin-top: -6svh; }
+    }
     @media (prefers-reduced-motion: reduce) {
       .title { animation: none; }
       .ca .value::after { animation: none; }
@@ -256,7 +278,7 @@
       <span class="label">CA:</span>
       <span class="value">Coming soon</span>
     </div>
-    <p class="hint">touch the bro · click to shatter</p>
+    <p class="hint">touch the bro · <span class="click">click</span><span class="tap">tap</span> to shatter</p>
   </main>
 
   <section class="lore" id="lore">
@@ -276,6 +298,7 @@
         <p class="twist">neither is the AI.</p>
         <p class="twist big">i made all this shit up.</p>
         <p class="end">it's going to <span>zerobro</span>.</p>
+        <p class="over">it's over.</p>
       </div>
     </div>
   </section>

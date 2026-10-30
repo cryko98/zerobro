@@ -1,5 +1,5 @@
 (() => {
-  const RADIUS = 0.2; // fraction of the character's width
+  const RADIUS = 0.17; // fraction of the character's width
   const TRAIL = 14;
   const stage = document.getElementById("stage");
   const canvas = document.getElementById("gl");
@@ -66,7 +66,7 @@
         // liquid ripple
         suv += ndir * sin(dRel * 18.0 - t * 8.0) * 0.008 * inC;
         // magnifying lens
-        suv -= dir * 0.35 * inC * (1.0 - dRel);
+        suv -= dir * 0.12 * inC * (1.0 - dRel);
         // voxelize the material
         float cells = mix(260.0, 64.0, inC);
         suv = (floor(suv * cells) + 0.5) / cells;
@@ -224,6 +224,8 @@
   window.addEventListener("pointermove", e => onMove(e.clientX, e.clientY), { passive: true });
   stage.addEventListener("pointerleave", () => { target.s = 0; inside = false; });
   window.addEventListener("pointerup", e => { if (e.pointerType !== "mouse") { target.s = 0; inside = false; } });
+  // a touch that turns into a page scroll is cancelled by the browser
+  window.addEventListener("pointercancel", () => { target.s = 0; inside = false; });
 
   let shock = { x: 0.5, y: 0.5, born: -1 };
   let glitchUntil = 0, nextGlitch = performance.now() + 2500;
